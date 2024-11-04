@@ -59,6 +59,10 @@ export class PasskeyKit extends PasskeyBase {
                     { tag: 'Persistent', values: undefined },
                 ]
             },
+            recovery:{
+                conditions: [],
+                signers: []
+            }
         })
 
         if (result.isErr())
@@ -414,6 +418,10 @@ export class PasskeyKit extends PasskeyBase {
                     { tag: store, values: undefined },
                 ],
             },
+            recovery: {
+                conditions: [],
+                signers: []
+            }
         });
     }
     public addEd25519(publicKey: string, limits: SignerLimits, store: SignerStore) {
@@ -426,6 +434,10 @@ export class PasskeyKit extends PasskeyBase {
                     { tag: store, values: undefined },
                 ],
             },
+            recovery: {
+                conditions: [],
+                signers: []
+            }
         });
     }
     public addPolicy(policy: string, limits: SignerLimits, store: SignerStore) {
@@ -438,6 +450,10 @@ export class PasskeyKit extends PasskeyBase {
                     { tag: store, values: undefined },
                 ],
             },
+            recovery: {
+                conditions: [],
+                signers: []
+            }
         });
     }
 

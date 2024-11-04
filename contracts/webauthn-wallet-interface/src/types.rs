@@ -11,7 +11,17 @@ pub enum Error {
     SignatureKeyValueMismatch = 5,
     ClientDataJsonChallengeIncorrect = 6,
     JsonParseError = 7,
+    // RECOVERY ERRORS
+    SmartWalletNotInitialized = 8,
+    RecoveryAlreadyExists = 9,
+    RecoveryDoesNotExist = 10,
+    RecoveryConditionHasDuplicateSigners = 11,
+    RecoverySignersHasDuplicates = 12,
+    RecoveryMalformedCondition = 13,
+    RecoveryTooManySigners = 14,
+    InactivityTimeNotMet = 15,
 }
+
 
 #[contracttype(export = false)]
 #[derive(Clone, Debug, PartialEq)]
@@ -70,3 +80,18 @@ pub enum Signature {
 #[contracttype(export = false)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Signatures(pub Map<SignerKey, Option<Signature>>);
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Recovery{
+    pub signers: Vec<Signer>, // Maximum 255 signers because it doesn't make sense to have more
+    pub conditions: Vec<Condition>
+}
+
+#[contracttype]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Condition {
+    pub allowed_signers_index: Bytes, // Each byte is the index of the signer + Assuming if this is empty we use all the signers
+    pub threshold: BytesN<1>,
+    pub inactivity_time: u64
+}

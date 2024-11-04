@@ -55,6 +55,12 @@
 				contractId: cid,
 				built,
 			} = await account.createWallet("Super Peach", user);
+
+			console.log("register", kid, cid);
+			console.log(built);
+			
+			
+
 			const res = await server.send(built);
 
 			console.log(res);

@@ -3,7 +3,7 @@
 use soroban_sdk::{
     contract, contracterror, contractimpl, symbol_short, Address, BytesN, Env, Symbol,
 };
-use webauthn_wallet_interface::{types::Signer, WebAuthnClient};
+use webauthn_wallet_interface::{types::{Recovery, Signer}, WebAuthnClient};
 
 mod types;
 
@@ -53,7 +53,7 @@ impl Contract {
         Ok(())
     }
 
-    pub fn deploy(env: Env, salt: BytesN<32>, signer: Signer) -> Result<Address, Error> {
+    pub fn deploy(env: Env, salt: BytesN<32>, signer: Signer, recovery: Option<Recovery>) -> Result<Address, Error> {
         let wasm_hash = env
             .storage()
             .instance()

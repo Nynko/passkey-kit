@@ -1,17 +1,13 @@
 #![no_std]
 
 use soroban_sdk::{
-    auth::{Context, ContractContext, CustomAccountInterface},
-    contract, contractimpl,
-    crypto::Hash,
-    panic_with_error, symbol_short, vec, BytesN, Env, FromVal, Symbol, Vec,
+    auth::{Context, ContractContext, CustomAccountInterface}, contract, contractimpl, crypto::Hash, panic_with_error, symbol_short, vec, BytesN, Env, FromVal, IntoVal, Symbol, TryFromVal, Val, Vec, Bytes
 };
+
 use webauthn_wallet_interface::{
     types::{
-        Error, Secp256r1Signature, Signature, Signatures, Signer, SignerKey, SignerLimits,
-        SignerStorage, SignerVal,
-    },
-    PolicyClient, WebAuthnInterface,
+        Error, Recovery, Secp256r1Signature, Signature, Signatures, Signer, SignerKey, SignerLimits, SignerStorage, SignerVal
+    }, PolicyClient, RecoveryInterface, WebAuthnInterface
 };
 
 mod base64_url;
@@ -26,6 +22,8 @@ pub struct Contract;
 const WEEK_OF_LEDGERS: u32 = 60 * 60 * 24 / 5 * 7;
 const EVENT_TAG: Symbol = symbol_short!("sw_v1");
 const SIGNER_COUNT: Symbol = symbol_short!("signers");
+const LAST_TX_TIMESTAMP: Symbol = symbol_short!("last_tx"); // This is updated on each require_auth call and use for Recovery
+const RECOVERY: Symbol = symbol_short!("recovery");
 
 #[contractimpl]
 impl WebAuthnInterface for Contract {
@@ -71,7 +69,9 @@ impl WebAuthnInterface for Contract {
         env.current_contract_address().require_auth();
 
         if let Some((_, signer_storage)) = get_signer_val_storage(&env, &signer_key, false) {
-            update_signer_count(&env, false);
+            // TODO: maybe ensure there is always one signers for security 
+            // (if you want to change you need to add then remove the old one)
+            update_signer_count(&env, false); 
 
             match signer_storage {
                 SignerStorage::Persistent => {
@@ -107,6 +107,78 @@ impl WebAuthnInterface for Contract {
 
         Ok(())
     }
+}
+
+
+#[contractimpl]
+impl RecoveryInterface for Contract where Contract: WebAuthnInterface {
+    fn add_recovery(env: Env, recovery: Recovery) -> Result<(), Error>{
+        if !env.storage().instance().has(&SIGNER_COUNT) {
+            // You have to set up the smart wallet with a signer before you can set up recovery
+            return Err(Error::SmartWalletNotInitialized);
+        } 
+
+        check_recovery_construction(&recovery)?;
+
+        env.current_contract_address().require_auth();
+
+        if env.storage().instance().has(&RECOVERY) {
+            return Err(Error::RecoveryAlreadyExists);
+        }
+
+        // Init the last_tx_timestamp
+        env.storage().instance().set(&LAST_TX_TIMESTAMP, &env.ledger().timestamp());
+
+        // Store the recovery
+        env.storage().instance().set(&RECOVERY, &recovery);
+
+        let max_ttl = env.storage().max_ttl();
+        env.storage().instance().extend_ttl(max_ttl - WEEK_OF_LEDGERS, max_ttl);
+
+
+        Ok(())
+    }
+    fn update_recovery(env: Env, recovery: Recovery) -> Result<(), Error>{
+
+        check_recovery_construction(&recovery)?;
+
+        env.current_contract_address().require_auth();
+
+        if !env.storage().instance().has(&RECOVERY) {
+            return Err(Error::RecoveryDoesNotExist);
+        }
+
+        env.storage().instance().set(&RECOVERY, &recovery);
+
+        let max_ttl = env.storage().max_ttl();
+        env.storage().instance().extend_ttl(max_ttl - WEEK_OF_LEDGERS, max_ttl);
+
+        Ok(())
+
+    }
+    fn recover(env:Env, condition_index: u32, new_signer: Signer) -> Result<(), Error>{
+
+        if !env.storage().instance().has(&RECOVERY) {
+            return Err(Error::RecoveryDoesNotExist);
+        }
+
+        let last_tx_timestamp = env.storage().instance().get::<Symbol, u64>(&LAST_TX_TIMESTAMP).unwrap();
+        let current_timestamp = env.ledger().timestamp();
+
+        // Check if the inactivity time is met
+        let recovery: Recovery = env.storage().instance().get::<Symbol, Recovery>(&RECOVERY).unwrap();
+        let condition = recovery.conditions.get(condition_index as u32).unwrap();
+        if current_timestamp.checked_sub(last_tx_timestamp).unwrap() > condition.inactivity_time {
+            panic_with_error!(env, Error::InactivityTimeNotMet)
+        }
+
+        // Require signer signature: __check_auth handle the special case of recovery
+        // This is done after inactivity time is checked because time is updated in __check_auth
+        env.current_contract_address().require_auth();
+
+        Ok(())
+
+    } 
 }
 
 fn store_signer(
@@ -199,6 +271,45 @@ impl CustomAccountInterface for Contract {
         signatures: Signatures,
         auth_contexts: Vec<Context>,
     ) -> Result<(), Error> {
+
+        // Check if this is a recovery
+        if env.storage().instance().has(&RECOVERY) {
+            // Update the last_tx for any authenticated transaction
+            env.storage().instance().set(&LAST_TX_TIMESTAMP, &env.ledger().timestamp());
+
+            for context in auth_contexts.iter() {
+                match context {
+                    Context::Contract(contract_context) => {
+                        if contract_context.contract == env.current_contract_address() && 
+                            contract_context.fn_name == symbol_short!("recover") {
+                            
+                            let condition_index = contract_context.args.get(2).unwrap();
+                            let recovery: Recovery = env.storage().instance().get::<Symbol, Recovery>(&RECOVERY).unwrap();
+                            let condition = recovery.conditions.get(condition_index.get_payload() as u32).unwrap();
+                            let mut threshold : u8 = 0;
+                            for signer_index in condition.allowed_signers_index.iter() {
+                                let signer = recovery.signers.get(signer_index as u32).unwrap();
+                                let signature = signatures.0.get(signer).flatten();
+                                if let Some(sig) = signature {
+                                    // verify 
+                                    threshold += 1;
+                                }
+
+                            }
+                            for (signer_key, signature) in signatures.0.iter(){
+
+                            }
+                            
+
+                        } else {
+                            continue
+                        }
+                    },
+                    _ => continue,
+                }
+            }
+        }
+
         // Check all contexts for an authorizing signature
         for context in auth_contexts.iter() {
             'check: loop {
@@ -227,7 +338,7 @@ impl CustomAccountInterface for Contract {
         // Check all signatures for a matching context
         for (signer_key, signature) in signatures.0.iter() {
             match get_signer_val_storage(&env, &signer_key, true) {
-                None => panic_with_error!(env, Error::NotFound),
+                None => panic_with_error!(env, Error::NotFound), 
                 Some((signer_val, _)) => {
                     match signature {
                         None => {
@@ -453,4 +564,91 @@ fn verify_secp256r1_signature(
     if client_data_json.challenge.as_bytes() != expected_challenge {
         panic_with_error!(env, Error::ClientDataJsonChallengeIncorrect)
     }
+}
+
+
+fn verify_signatures(env: &Env, signature: &Signature, signature_payload: &Hash<32>, signer_key: &SignerKey) -> Result<(), Error>{
+    match signature {
+        Signature::Ed25519(signature) => {
+            if let SignerKey::Ed25519(public_key) = signer_key {
+                env.crypto().ed25519_verify(
+                    &public_key,
+                    &signature_payload.clone().into(),
+                    &signature,
+                );
+                return Ok(());
+            }
+
+            return Err(Error::SignatureKeyValueMismatch)
+        }
+        Signature::Secp256r1(signature) => {
+            if let SignerVal::Secp256r1(public_key, _signer_limits) = signer_val
+            {
+                verify_secp256r1_signature(
+                    &env,
+                    signature_payload,
+                    &public_key,
+                    signature.clone(),
+                );
+                return Ok(());
+            }
+
+            return Err(Error::SignatureKeyValueMismatch)
+        }
+    },
+}
+
+fn check_recovery_construction(recovery : &Recovery) -> Result<(),Error>{
+
+    // Check no duplicate signers
+    let len_signers = recovery.signers.len();
+    if len_signers > 255 {
+        return Err(Error::RecoveryTooManySigners);
+    }
+
+    if has_duplicates(&recovery.signers){
+        return Err(Error::RecoverySignersHasDuplicates);
+    }
+
+    // Check conditions doesn't have duplicates signers &&
+    // Check conditions doesn't go over the signers length
+    for condition in &recovery.conditions{
+        if has_duplicates_bytes(&condition.allowed_signers_index){
+            return Err(Error::RecoveryConditionHasDuplicateSigners);
+        }
+        if condition.allowed_signers_index.iter().any(|val| val >= len_signers as u8){
+            return Err(Error::RecoveryMalformedCondition);
+        }
+    }
+
+
+    Ok(())
+}
+
+/** This is a very innefficient implementation in O(n^2)
+ * A better one would imply having struct implementation Ord for using a sorting algorithm
+ * Another one would use a HashSet (which is in std)
+ */
+fn has_duplicates<T: PartialEq + IntoVal<Env, Val> + TryFromVal<Env, Val>,>(items: &Vec<T>) -> bool {
+    let len = items.len();
+    for (i,elem) in items.into_iter().enumerate(){
+        for elem2 in items.slice((i as u32)..len){
+            if elem == elem2 {
+                return true;
+            }
+        }
+    }
+    false // No duplicates
+}
+/** To make it DRY */
+fn has_duplicates_bytes(items: &Bytes) -> bool {
+    let len = items.len();
+    for (i,elem) in items.iter().enumerate(){
+        for elem2 in items.slice((i as u32)..len){
+            if elem == elem2 {
+                return true;
+            }
+        }
+    }
+    false // No duplicates
 }
