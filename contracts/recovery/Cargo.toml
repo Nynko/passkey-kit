@@ -21,3 +21,8 @@ smart-wallet-utils = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+stellar-xdr = { workspace = true, features = ["std", "curr"] }
+stellar-strkey = { workspace = true }
+ed25519-dalek = { workspace = true }
+example-contract = { workspace = true, features = ["testutils"] }
+sample-policy = { workspace = true,features = ["testutils"] }

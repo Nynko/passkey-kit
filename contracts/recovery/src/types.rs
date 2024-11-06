@@ -27,7 +27,7 @@ pub enum Error {
 pub enum SignerPubKey {
     Policy(Address),
     Ed25519(BytesN<32>),
-    Secp256r1(Bytes, BytesN<65>),
+    Secp256r1(BytesN<65>),
 }
 
 #[contracttype]

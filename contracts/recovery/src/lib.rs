@@ -2,12 +2,13 @@
 
 use smart_wallet_interface::{types::{Signature, SignerKey}, PolicyInterface};
 use soroban_sdk::{
-    auth::{Context, ContractContext, CustomAccountInterface}, contract, contractclient, contractimpl, panic_with_error, symbol_short, Address, Bytes, Env, IntoVal, Symbol, TryFromVal, Val, Vec, crypto::Hash
+    auth::{Context, ContractContext, CustomAccountInterface}, contract, contractclient, contractimpl, crypto::Hash, panic_with_error, symbol_short, Address, Bytes, Env, IntoVal, Symbol, TryFromVal, Val, Vec
 };
 use types::{ConditionSignatures, Error, Recovery, SignerPubKey};
 use smart_wallet_utils::verify::verify_secp256r1_signature;
 
 pub mod types;
+mod test;
 
 #[contract]
 pub struct Contract;
@@ -17,7 +18,7 @@ const RECOVERY: Symbol = symbol_short!("recovery");
 const WEEK_OF_LEDGERS: u32 = 60 * 60 * 24 / 5 * 7;
 const LAST_ACTIVE_TIMESTAMP: Symbol = symbol_short!("last_tx"); 
 // This should be updated regularly: It could/should actually be embedded in the smart wallet and updated on each 
-// auth transaction (because it makes it "almost free update") but it add more complexity to the implementation and add an "options" struct.
+// auth transaction (because it makes it "almost free update") but it add more complexity to the smart wallet implementation and add an "options" struct.
 // So it will stay as a contract storage for now but any wallet implementation should update it regularly.
 // last_active_time is used for inactivity-time based recovery. A view function can access it.
 
@@ -28,9 +29,9 @@ impl PolicyInterface for Contract {
         let wallet_address = env.storage().instance().get::<Symbol, Address>(&SMART_WALLET).unwrap();
         for context in contexts.iter() {
             match context {
-                Context::Contract(ContractContext { contract, fn_name, .. }) => {
+                Context::Contract(ContractContext { contract: contract_addr, fn_name, .. }) => {
                     // We only use this policy for adding signer to the smart wallet
-                    if contract == source && contract == wallet_address && fn_name == Symbol::new(&env, "add_signer"){
+                    if contract_addr == source && contract_addr == wallet_address && fn_name == Symbol::new(&env, "add_signer"){
                         context_found = true;
 
                         if !env.storage().instance().has(&RECOVERY) {
@@ -66,7 +67,6 @@ impl RecoveryInterface for Contract {
         if env.storage().instance().has(&SMART_WALLET) || env.storage().instance().has(&RECOVERY) {
             return Err(Error::RecoveryAlreadyExists);
         } 
-
         smart_wallet_addr.require_auth();
         env.storage().instance().set(&SMART_WALLET, &smart_wallet_addr);
 
@@ -153,6 +153,9 @@ impl CustomAccountInterface for Contract {
         }
 
         // Check the signatures and threshold
+        if list_signers.len() > 255 { // This shouldn't be useful because we already checked it in the recovery construction
+            panic_with_error!(env, Error::TooManySigners)
+        }
         let mut threshold : u8 = 0;
         for signer in list_signers.iter(){
             let signature = signatures.signatures.get(signer.clone()).flatten();
@@ -165,7 +168,7 @@ impl CustomAccountInterface for Contract {
         if threshold < condition.threshold.get(0).unwrap() {
             panic_with_error!(env, Error::ThresholdNotMet)
         }
-                            
+
         Ok(())
         }
 }
@@ -184,7 +187,7 @@ fn verify_signature(env: &Env, signer_key: &SignerPubKey, signature: &Signature,
                 }
             }
             Signature::Secp256r1(signature) => {
-                if let SignerPubKey::Secp256r1(_, public_key) = &signer_key {
+                if let SignerPubKey::Secp256r1(public_key) = &signer_key {
                     verify_secp256r1_signature(
                         &env,
                         &signature_payload,
@@ -234,7 +237,7 @@ fn check_recovery_construction(recovery : &Recovery) -> Result<(),Error>{
 fn has_duplicates<T: PartialEq + IntoVal<Env, Val> + TryFromVal<Env, Val>,>(items: &Vec<T>) -> bool {
     let len = items.len();
     for (i,elem) in items.into_iter().enumerate(){
-        for elem2 in items.slice((i as u32)..len){
+        for elem2 in items.slice((i as u32)+1..len){
             if elem == elem2 {
                 return true;
             }
@@ -246,7 +249,7 @@ fn has_duplicates<T: PartialEq + IntoVal<Env, Val> + TryFromVal<Env, Val>,>(item
 fn has_duplicates_bytes(items: &Bytes) -> bool {
     let len = items.len();
     for (i,elem) in items.iter().enumerate(){
-        for elem2 in items.slice((i as u32)..len){
+        for elem2 in items.slice((i as u32)+1..len){
             if elem == elem2 {
                 return true;
             }
