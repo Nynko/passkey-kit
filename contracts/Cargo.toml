@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["smart-wallet", "smart-wallet-interface", "smart-wallet-factory", "example-contract", "sample-policy"]
+members = ["smart-wallet-utils", "smart-wallet", "smart-wallet-interface", "smart-wallet-factory", "example-contract", "sample-policy", "recovery"]
 
 [workspace.dependencies]
 soroban-sdk = { version = "21.7.6" }
@@ -14,10 +14,13 @@ rand = { version = "0.8.5" }
 base64 = "0.22.1"
 stellar-strkey = { version = "0.0.11" }
 smart-wallet = { path = "smart-wallet" }
+smart-wallet-utils = {path = "smart-wallet-utils"}
 smart-wallet-interface = { path = "smart-wallet-interface" }
 smart-wallet-factory = { path = "smart-wallet-factory" }
 example-contract = { path = "example-contract" }
 sample-policy = { path = "sample-policy" }
+recovery = { path = "recovery"}
+securer = { path = "securer"}
 
 [profile.release]
 opt-level = "z"

@@ -13,14 +13,12 @@ use soroban_sdk::{
     panic_with_error, symbol_short, BytesN, Env, Symbol, Vec,
 };
 use storage::extend_instance;
-use verify::verify_secp256r1_signature;
+use smart_wallet_utils::verify::verify_secp256r1_signature;
 
-mod base64_url;
 mod context;
 mod signer;
 mod storage;
 mod types;
-mod verify;
 
 #[path = "./tests/test.rs"]
 mod test;
