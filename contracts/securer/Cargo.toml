@@ -16,6 +16,7 @@ testutils = []
 [dependencies]
 soroban-sdk = { workspace = true }
 smart-wallet-interface = { workspace = true }
+smart-wallet-utils = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

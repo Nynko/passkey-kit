@@ -965,10 +965,15 @@ dependencies = [
 name = "recovery"
 version = "0.0.0"
 dependencies = [
+ "ed25519-dalek 1.0.1",
+ "example-contract",
+ "sample-policy",
  "smart-wallet",
  "smart-wallet-interface",
  "smart-wallet-utils",
  "soroban-sdk",
+ "stellar-strkey 0.0.11",
+ "stellar-xdr",
 ]
 
 [[package]]
@@ -1021,6 +1026,15 @@ dependencies = [
  "generic-array",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "securer"
+version = "0.0.0"
+dependencies = [
+ "smart-wallet-interface",
+ "smart-wallet-utils",
+ "soroban-sdk",
 ]
 
 [[package]]

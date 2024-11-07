@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["smart-wallet-utils", "smart-wallet", "smart-wallet-interface", "smart-wallet-factory", "example-contract", "sample-policy", "recovery"]
+members = ["smart-wallet-utils", "smart-wallet", "smart-wallet-interface", "smart-wallet-factory", "example-contract", "sample-policy", "recovery", "securer"]
 
 [workspace.dependencies]
 soroban-sdk = { version = "21.7.6" }
