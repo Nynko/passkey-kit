@@ -5,9 +5,11 @@ use soroban_sdk::{
 
 /**
  * Check if the current context is the policy context that will be called
- * This is done to avoid impossible state where the context passed as an argument is the policy context
- * Which in case the policy is doing authentication, cannot be determined because it modifies the context itself 
- * in the AuthorizationInvocation
+ * This is done to avoid impossible state where the contexts passed as an argument contain the policy context.
+ * Indeed, in case the policy is doing authentication, we cannot deterministically determined the proper Context again
+ * because the Context argument modifies the context itself in the AuthorizationInvocation.
+ * 
+ * Access to this removed context is still possible with a `__check_auth` function. 
  */
 pub fn is_policy_context( 
     context: &Context,
@@ -24,6 +26,7 @@ pub fn is_policy_context(
     }
 }
 
+/** See `is_policy_context()` comments to understand why we want to remove the policy__ context */
 pub fn filter_policy_context(env: &Env, contexts: &Vec<Context>, policy_address: &Address) -> Vec<Context> {
     let mut context_without_policy = Vec::new(env);
     for context in contexts.iter() {
