@@ -1,6 +1,7 @@
 #![no_std]
 
 use context::verify_context;
+use policy_context::filter_policy_context;
 use signer::{get_signer_val_storage, process_signer, store_signer, verify_signer_expiration};
 use smart_wallet_interface::{
     types::{Error, Signature, Signatures, Signer, SignerKey, SignerStorage, SignerVal},
@@ -17,6 +18,7 @@ use verify::verify_secp256r1_signature;
 
 mod base64_url;
 mod context;
+mod policy_context;
 mod signer;
 mod storage;
 mod types;
@@ -157,10 +159,11 @@ impl CustomAccountInterface for Contract {
                         None => {
                             // If there's a policy signer in the signatures map we call it as a full forward of this __check_auth's Vec<Context>
                             if let SignerKey::Policy(policy) = &signer_key {
+                                let context_without_policy = filter_policy_context(&env,&auth_contexts, policy);
                                 PolicyClient::new(&env, policy).policy__(
                                     &env.current_contract_address(),
                                     &signer_key,
-                                    &auth_contexts,
+                                    &context_without_policy,
                                 );
                                 continue;
                             }

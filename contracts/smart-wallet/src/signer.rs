@@ -4,7 +4,7 @@ use smart_wallet_interface::{
 };
 use soroban_sdk::{auth::Context, panic_with_error, vec, Env, Vec};
 
-use crate::{context::verify_context, storage::extend_signer_key};
+use crate::{context::verify_context, policy_context::is_policy_context, storage::extend_signer_key};
 
 pub fn process_signer(signer: Signer) -> (SignerKey, SignerVal, SignerStorage) {
     match signer {
@@ -165,11 +165,14 @@ pub fn verify_signer_limit_keys(
                     }
                 }
 
-                PolicyClient::new(&env, policy).policy__(
-                    &env.current_contract_address(),
-                    signer_key,
-                    &vec![env, context.clone()],
-                );
+                if !is_policy_context(context,policy) {
+                    PolicyClient::new(&env, policy).policy__(
+                        &env.current_contract_address(),
+                        signer_key,
+                        &vec![env, context.clone()],
+                    );
+                }
+
                 // For every other SignerLimits key, it must exist in the signatures map and thus exist as a signer on the smart wallet
             } else if !signatures.0.contains_key(signer_limits_key.clone()) {
                 // if any required key is missing this contract invocation is invalid
