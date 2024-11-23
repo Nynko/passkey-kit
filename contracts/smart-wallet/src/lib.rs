@@ -159,11 +159,11 @@ impl CustomAccountInterface for Contract {
                         None => {
                             // If there's a policy signer in the signatures map we call it as a full forward of this __check_auth's Vec<Context>
                             if let SignerKey::Policy(policy) = &signer_key {
-                                let context_without_policy = filter_policy_context(&env,&auth_contexts, policy);
+                                let contexts_without_policy = filter_policy_context(&env,&auth_contexts, policy);
                                 PolicyClient::new(&env, policy).policy__(
                                     &env.current_contract_address(),
                                     &signer_key,
-                                    &context_without_policy,
+                                    &contexts_without_policy,
                                 );
                                 continue;
                             }

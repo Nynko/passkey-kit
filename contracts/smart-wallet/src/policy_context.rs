@@ -28,11 +28,11 @@ pub fn is_policy_context(
 
 /** See `is_policy_context()` comments to understand why we want to remove the policy__ context */
 pub fn filter_policy_context(env: &Env, contexts: &Vec<Context>, policy_address: &Address) -> Vec<Context> {
-    let mut context_without_policy = Vec::new(env);
+    let mut contexts_without_policy = Vec::new(env);
     for context in contexts.iter() {
         if !is_policy_context(&context, policy_address) {
-            context_without_policy.push_back(context);
+            contexts_without_policy.push_back(context);
         }
     }
-    context_without_policy
+    contexts_without_policy
 }
