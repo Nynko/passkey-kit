@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@stellar/stellar-sdk': 13.0.0-beta.1
+  '@stellar/stellar-sdk': ^13.0.0
 
 importers:
 
@@ -15,8 +15,8 @@ importers:
         specifier: ^11.0.0
         version: 11.0.0
       '@stellar/stellar-sdk':
-        specifier: 13.0.0-beta.1
-        version: 13.0.0-beta.1
+        specifier: ^13.0.0
+        version: 13.0.0
       base64url:
         specifier: ^3.0.1
         version: 3.0.1
@@ -38,16 +38,16 @@ importers:
         version: 11.0.0
       '@types/node':
         specifier: ^22.7.5
-        version: 22.7.5
+        version: 22.9.1
       typescript:
         specifier: ^5.6.3
-        version: 5.6.3
+        version: 5.7.2
 
   packages/passkey-factory-sdk:
     dependencies:
       '@stellar/stellar-sdk':
-        specifier: 13.0.0-beta.1
-        version: 13.0.0-beta.1
+        specifier: ^13.0.0
+        version: 13.0.0
       buffer:
         specifier: 6.0.3
         version: 6.0.3
@@ -59,8 +59,8 @@ importers:
   packages/passkey-kit-sdk:
     dependencies:
       '@stellar/stellar-sdk':
-        specifier: 13.0.0-beta.1
-        version: 13.0.0-beta.1
+        specifier: ^13.0.0
+        version: 13.0.0
       buffer:
         specifier: 6.0.3
         version: 6.0.3
@@ -72,8 +72,8 @@ importers:
   packages/sac-sdk:
     dependencies:
       '@stellar/stellar-sdk':
-        specifier: 13.0.0-beta.1
-        version: 13.0.0-beta.1
+        specifier: ^13.0.0
+        version: 13.0.0
       buffer:
         specifier: 6.0.3
         version: 6.0.3
@@ -93,14 +93,14 @@ packages:
   '@stellar/js-xdr@3.1.2':
     resolution: {integrity: sha512-VVolPL5goVEIsvuGqDc5uiKxV03lzfWdvYg1KikvwheDmTBO68CKDji3bAZ/kppZrx5iTA8z3Ld5yuytcvhvOQ==}
 
-  '@stellar/stellar-base@13.0.0-beta.1':
-    resolution: {integrity: sha512-S5c2FyKwUOc28/3sDoOfPIcdzcbUyfiYRmcUlscZrEX/VVzV12216XRkdWy2MYa8KQNK60MpR7wrGp2MamvVGg==}
+  '@stellar/stellar-base@13.0.1':
+    resolution: {integrity: sha512-Xbd12mc9Oj/130Tv0URmm3wXG77XMshZtZ2yNCjqX5ZbMD5IYpbBs3DVCteLU/4SLj/Fnmhh1dzhrQXnk4r+pQ==}
 
-  '@stellar/stellar-sdk@13.0.0-beta.1':
-    resolution: {integrity: sha512-yJN2HzibhZFJsdLRU83bkUwb9dq1sZRRiQptTJyunVv0hQsF+tTldrP3hHst3LROv/2GWTn20tmAqnp0hkzOhg==}
+  '@stellar/stellar-sdk@13.0.0':
+    resolution: {integrity: sha512-+wvmKi+XWwu27nLYTM17EgBdpbKohEkOfCIK4XKfsI4WpMXAqvnqSm98i9h5dAblNB+w8BJqzGs1JY0PtTGm4A==}
 
-  '@types/node@22.7.5':
-    resolution: {integrity: sha512-jML7s2NAzMWc//QSJ1a3prpk78cOPchGvXJsC3C6R6PSMoooztvRVQEz89gmBTBY1SPMaqo5teB4uNHPdetShQ==}
+  '@types/node@22.9.1':
+    resolution: {integrity: sha512-p8Yy/8sw1caA8CdRIQBG5tiLHmxtQKObCijiAa9Ez+d4+PRffM4054xbju0msf+cvhJpnFEeNjxmVT/0ipktrg==}
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -171,8 +171,8 @@ packages:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
     engines: {node: '>= 0.6'}
 
-  node-gyp-build@4.8.2:
-    resolution: {integrity: sha512-IRUxE4BVsHWXkV/SFOut4qTlagw2aM8T5/vnTsmrHJvVoKueJHRc/JaFND7QDDc61kLYUJ6qlZM3sqTSyx2dTw==}
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
 
   proxy-from-env@1.1.0:
@@ -188,8 +188,8 @@ packages:
     resolution: {integrity: sha512-QMEp5B7cftE7APOjk5Y6xgrbWu+WkLVQwk8JNjZ8nKRciZaByEW6MubieAiToS7+dwvrjGhH8jRXz3MVd0AYqQ==}
     hasBin: true
 
-  sodium-native@4.2.1:
-    resolution: {integrity: sha512-48X3PfRLW+f0fgb3J7f7mkZ9eBKcGR/bD5mdXXLAx4RWwKUe3095yPQgiUUQTfh8Q29JzwhSQATitQDBIozN/w==}
+  sodium-native@4.3.1:
+    resolution: {integrity: sha512-YdP64gAdpIKHfL4ttuX4aIfjeunh9f+hNeQJpE9C8UMndB3zkgZ7YmmGT4J2+v6Ibyp6Wem8D1TcSrtdW0bqtg==}
 
   toml@3.0.0:
     resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
@@ -202,8 +202,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.6.3:
-    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
+  typescript@5.7.2:
+    resolution: {integrity: sha512-i5t66RHxDvVN40HfDd1PsEThGNnlMCMT3jMUuoh9/0TaqWevNontacunWyN02LA9/fIbEWlcHZcgTKb9QoaLfg==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -223,7 +223,7 @@ snapshots:
 
   '@stellar/js-xdr@3.1.2': {}
 
-  '@stellar/stellar-base@13.0.0-beta.1':
+  '@stellar/stellar-base@13.0.1':
     dependencies:
       '@stellar/js-xdr': 3.1.2
       base32.js: 0.1.0
@@ -232,11 +232,11 @@ snapshots:
       sha.js: 2.4.11
       tweetnacl: 1.0.3
     optionalDependencies:
-      sodium-native: 4.2.1
+      sodium-native: 4.3.1
 
-  '@stellar/stellar-sdk@13.0.0-beta.1':
+  '@stellar/stellar-sdk@13.0.0':
     dependencies:
-      '@stellar/stellar-base': 13.0.0-beta.1
+      '@stellar/stellar-base': 13.0.1
       axios: 1.7.7
       bignumber.js: 9.1.2
       eventsource: 2.0.2
@@ -247,7 +247,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@types/node@22.7.5':
+  '@types/node@22.9.1':
     dependencies:
       undici-types: 6.19.8
 
@@ -306,7 +306,7 @@ snapshots:
     dependencies:
       mime-db: 1.52.0
 
-  node-gyp-build@4.8.2:
+  node-gyp-build@4.8.4:
     optional: true
 
   proxy-from-env@1.1.0: {}
@@ -322,9 +322,9 @@ snapshots:
       inherits: 2.0.4
       safe-buffer: 5.2.1
 
-  sodium-native@4.2.1:
+  sodium-native@4.3.1:
     dependencies:
-      node-gyp-build: 4.8.2
+      node-gyp-build: 4.8.4
     optional: true
 
   toml@3.0.0: {}
@@ -333,7 +333,7 @@ snapshots:
 
   typescript@5.6.2: {}
 
-  typescript@5.6.3: {}
+  typescript@5.7.2: {}
 
   undici-types@6.19.8: {}
 

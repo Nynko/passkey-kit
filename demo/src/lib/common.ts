@@ -1,9 +1,10 @@
 import { PasskeyKit, PasskeyServer, SACClient } from "passkey-kit";
-import { Account, Keypair, SorobanRpc, StrKey } from "@stellar/stellar-sdk/minimal"
+import { Account, Keypair, StrKey } from "@stellar/stellar-sdk/minimal"
 import { Buffer } from "buffer";
 import { basicNodeSigner } from "@stellar/stellar-sdk/minimal/contract";
+import { Server } from "@stellar/stellar-sdk/minimal/rpc";
 
-export const rpc = new SorobanRpc.Server(import.meta.env.VITE_rpcUrl);
+export const rpc = new Server(import.meta.env.VITE_rpcUrl);
 
 export const mockPubkey = StrKey.encodeEd25519PublicKey(Buffer.alloc(32))
 export const mockSource = new Account(mockPubkey, '0')

@@ -1,18 +1,19 @@
 import { Client as FactoryClient } from 'passkey-factory-sdk'
 import { Client as PasskeyClient, type Signature, type SignerKey as SDKSignerKey, type SignerLimits as SDKSignerLimits } from 'passkey-kit-sdk'
-import { StrKey, hash, xdr, SorobanRpc, Keypair, Address } from '@stellar/stellar-sdk/minimal'
+import { StrKey, hash, xdr, Keypair, Address } from '@stellar/stellar-sdk/minimal'
 import type { AuthenticatorAttestationResponseJSON, AuthenticatorSelectionCriteria } from "@simplewebauthn/types"
 import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
 import { Buffer } from 'buffer'
 import base64url from 'base64url'
 import type { SignerKey, SignerLimits, SignerStore } from './types'
 import { PasskeyBase } from './base'
-import { AssembledTransaction, DEFAULT_TIMEOUT, type Tx, type Spec } from '@stellar/stellar-sdk/minimal/contract'
+import { AssembledTransaction, DEFAULT_TIMEOUT, type Tx } from '@stellar/stellar-sdk/minimal/contract'
+import type { Server } from '@stellar/stellar-sdk/minimal/rpc'
 
 // TODO Return base64url encoded strings as well as buffers
 
 export class PasskeyKit extends PasskeyBase {
-    declare public rpc: SorobanRpc.Server
+    declare public rpc: Server
     declare public rpcUrl: string
     public keyId: string | undefined
     public networkPassphrase: string

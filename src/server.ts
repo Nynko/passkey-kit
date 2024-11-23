@@ -1,9 +1,10 @@
-import { SorobanRpc, Transaction, xdr } from "@stellar/stellar-sdk/minimal"
+import { xdr } from "@stellar/stellar-sdk/minimal"
 import { PasskeyBase } from "./base"
 import base64url from "base64url"
 import type { Tx } from "@stellar/stellar-sdk/minimal/contract"
 import type { Signer } from "./types"
 import { AssembledTransaction } from "@stellar/stellar-sdk/minimal/contract"
+import { Durability } from "@stellar/stellar-sdk/minimal/rpc"
 
 export class PasskeyServer extends PasskeyBase {
     public launchtubeUrl: string | undefined
@@ -85,7 +86,7 @@ export class PasskeyServer extends PasskeyBase {
         for (const signer of signers) {
             if (signer.storage === 'Temporary') {
                 try {
-                    await this.rpc.getContractData(contractId, xdr.ScVal.scvBytes(base64url.toBuffer(signer.key)), SorobanRpc.Durability.Temporary)
+                    await this.rpc.getContractData(contractId, xdr.ScVal.scvBytes(base64url.toBuffer(signer.key)), Durability.Temporary)
                 } catch {
                     signer.evicted = true
                 }
