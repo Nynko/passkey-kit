@@ -6,17 +6,15 @@ extern crate std;
 use smart_wallet::{Contract as SmartWalletContract, ContractClient as SmartWalletClient};
 use ed25519_dalek::{Keypair, Signer as _};
 use example_contract::{Contract as ExampleContract, ContractClient as ExampleContractClient};
-use sample_policy::{Contract as SamplePolicyContract};
-use crate::{types::{Condition, ConditionSignatures, Error, Recovery, SignerPubKey}, Contract as RecoveryContract, RecoveryClient};
+use sample_policy::Contract as SamplePolicyContract;
+use crate::{types::{Condition, ConditionSignatures, Recovery, SignerPubKey}, Contract as RecoveryContract, RecoveryClient};
 use smart_wallet_interface::types::{
     Signature, Signatures, Signer, SignerKey, SignerLimits, SignerStorage,
 };
 use soroban_sdk::{
-    auth::{Context, ContractContext}, contract, map, testutils::{EnvTestConfig, Ledger}, token, vec, xdr::{
-        HashIdPreimage, HashIdPreimageSorobanAuthorization, InvokeContractArgs, Limits,
-        SorobanAddressCredentials, SorobanAuthorizationEntry, SorobanAuthorizedFunction,
-        SorobanAuthorizedInvocation, SorobanCredentials, ToXdr, VecM, WriteXdr,
-    }, Address, Bytes, BytesN, Env, String, Symbol, TryIntoVal
+    auth::{Context, ContractContext}, map, testutils::{EnvTestConfig, Ledger}, token, vec, xdr::{
+        HashIdPreimage, HashIdPreimageSorobanAuthorization, InvokeContractArgs, Limits, SorobanAddressCredentials, SorobanAuthorizationEntry, SorobanAuthorizedFunction, SorobanAuthorizedInvocation, SorobanCredentials, ToXdr, VecM, WriteXdr
+    }, Address, Bytes, BytesN, Env, IntoVal, String, Symbol,
 };
 use stellar_strkey::{ed25519, Strkey};
 
@@ -73,11 +71,11 @@ struct Environment<'a> {
     signature_expiration_ledger: u32,
     wallet_address: Address,
     wallet_client: SmartWalletClient<'a>,
-    example_contract_client: ExampleContractClient<'a>,
+    // example_contract_client: ExampleContractClient<'a>,
     recovery_client: RecoveryClient<'a>,
-    sac_address: Address,
+    // sac_address: Address,
     recovery_policy_address: Address,
-    sample_policy_address: Address,
+    // sample_policy_address: Address,
     simple_ed25519_signer_key: SignerKey,
     simple_ed25519_keypair: Keypair,
     simple_ed25519_bytes: BytesN<32>,
@@ -97,12 +95,12 @@ fn set_up<'a>() -> Environment<'a>{
     let wallet_client = SmartWalletClient::new(&env, &wallet_address);
 
     let example_contract_address = env.register_contract(None, ExampleContract);
-    let example_contract_client = ExampleContractClient::new(&env, &example_contract_address);
+    let _example_contract_client = ExampleContractClient::new(&env, &example_contract_address);
 
     let recovery_policy_address = env.register_contract(None, RecoveryContract);
     let recovery_client = RecoveryClient::new(&env, &recovery_policy_address);
 
-    let sample_policy_address = env.register_contract(None, SamplePolicyContract);
+    let _sample_policy_address = env.register_contract(None, SamplePolicyContract);
 
     // SAC
     let sac_admin = Address::from_string(&String::from_str(
@@ -117,7 +115,7 @@ fn set_up<'a>() -> Environment<'a>{
         .mock_all_auths()
         .mint(&wallet_address, &100_000_000);
 
-    let (simple_ed25519_keypair, simple_ed25519_address, simple_ed25519_bytes, simple_ed25519_signer_key) = get_simple_ed25519(&env);
+    let (simple_ed25519_keypair, _simple_ed25519_address, simple_ed25519_bytes, simple_ed25519_signer_key) = get_simple_ed25519(&env);
 
 
     return Environment {
@@ -125,14 +123,14 @@ fn set_up<'a>() -> Environment<'a>{
         signature_expiration_ledger,
         wallet_address,
         wallet_client,
-        example_contract_client,
+        // example_contract_client,
         recovery_client,
-        sac_address,
+        // sac_address,
         recovery_policy_address,
         simple_ed25519_signer_key,
         simple_ed25519_keypair,
         simple_ed25519_bytes,
-        sample_policy_address
+        // sample_policy_address
     };
 }
 
@@ -225,7 +223,7 @@ fn test_init_recovery() {
 fn test_recover_wallet(){
 
     let set_up = set_up();
-    let mut env = set_up.env;
+    let env = set_up.env;
     let signature_expiration_ledger = set_up.signature_expiration_ledger;
     let simple_ed25519_keypair = set_up.simple_ed25519_keypair;
     let simple_ed25519_bytes = set_up.simple_ed25519_bytes;
@@ -251,24 +249,38 @@ fn test_recover_wallet(){
         SignerLimits(map![
             &env,
         ]),
-        SignerStorage::Temporary,
+        SignerStorage::Persistent,
     );
+
+
+    let signer_key_recovery_policy = SignerKey::Policy(recovery_policy_address.clone());
+    // Add the policy: 
+    wallet_client.mock_all_auths().add_signer(&Signer::Policy(
+        recovery_policy_address.clone(),
+        None,
+        SignerLimits(map![&env,]),
+        SignerStorage::Persistent,
+    ));
+
+    let context_add_signer : Context =  Context::Contract(ContractContext {
+        contract: wallet_address.clone(),
+        fn_name: Symbol::new(&env, "add_signer"),
+        args: (new_signer.clone(),).into_val(&env),
+    });
 
     let policy_invocation = SorobanAuthorizedInvocation {
         function: SorobanAuthorizedFunction::ContractFn(InvokeContractArgs {
             contract_address: recovery_policy_address.clone().try_into().unwrap(),
             function_name: "policy__".try_into().unwrap(),
             args: std::vec![
-                // wallet_address.clone().try_into().unwrap(),
-                // std::vec![Context::Contract(ContractContext {
-                //     contract: sample_policy_address.clone().try_into().unwrap(),
-                //     fn_name: Symbol::new(&env,"add_signer").try_into().unwrap(),
-                //     args: vec![&env,new_signer.clone().try_into_val(&env).unwrap()],
-                // })].try_into().unwrap(),
+                wallet_address.clone().try_into().unwrap(),
+                signer_key_recovery_policy.clone().try_into().unwrap(),
+                std::vec![context_add_signer.clone()].try_into().unwrap(),
             ].try_into().unwrap(),
         }),
         sub_invocations: std::vec![].try_into().unwrap(),
     };
+
 
     let add_signer_invocation = SorobanAuthorizedInvocation {
         function: SorobanAuthorizedFunction::ContractFn(InvokeContractArgs {
@@ -284,12 +296,12 @@ fn test_recover_wallet(){
     };
 
     let nonce = 6;
-    let simple_ed25519_signature = sign_payload(&env,nonce, &simple_ed25519_keypair, signature_expiration_ledger, &add_signer_invocation);
+    let simple_ed25519_signature = sign_payload(&env,nonce, &simple_ed25519_keypair, signature_expiration_ledger, &policy_invocation);
 
     let policy_auth = SorobanAuthorizationEntry {
         credentials: SorobanCredentials::Address(SorobanAddressCredentials {
             address: recovery_policy_address.clone().try_into().unwrap(),
-            nonce: 7,
+            nonce: nonce,
             signature_expiration_ledger,
             signature: (ConditionSignatures {
                 condition_index: 0,
@@ -306,7 +318,7 @@ fn test_recover_wallet(){
     let wallet_auth = SorobanAuthorizationEntry {
         credentials: SorobanCredentials::Address(SorobanAddressCredentials {
             address: wallet_address.clone().try_into().unwrap(),
-            nonce: 8,
+            nonce: nonce + 1,
             signature_expiration_ledger,
             signature: Signatures(map![
                 &env,
@@ -319,27 +331,60 @@ fn test_recover_wallet(){
     };
 
 
-    // Add the policy: 
-    wallet_client.mock_all_auths().add_signer(&Signer::Policy(
-        recovery_policy_address.clone(),
-        None,
-        SignerLimits(map![&env]),
-        SignerStorage::Persistent,
-    ));
-
     let time = env.ledger().timestamp();
     env.ledger().with_mut(|li| {
-        li.timestamp = time + 63;
+        li.timestamp = time + 2;
     });
 
  
-    let result = wallet_client.set_auths(&[wallet_auth,policy_auth]).add_signer(&new_signer);
-    println!("{:?}", result);
-    // assert_eq!(result, Err(Ok(Error::InactivityTimeNotMet)));
+    let result = wallet_client.set_auths(&[wallet_auth,policy_auth]).try_add_signer(&new_signer);
+    println!("{:?}", result.unwrap_err().unwrap());
+    // assert_eq!(result, Err(Ok(RecoveryError::InactivityTimeNotMet)));
 
-    // env.ledger().with_mut(|li| {
-    //     li.timestamp = env.ledger().timestamp() + 60;
-    // });
+    let time = env.ledger().timestamp();
+    env.ledger().with_mut(|li| {
+        li.timestamp = time + 60;
+    });
+
+    let nonce_2 = 9;
+    let simple_ed25519_signature_2 = sign_payload(&env,nonce_2, &simple_ed25519_keypair, signature_expiration_ledger, &policy_invocation);
+
+    let policy_auth = SorobanAuthorizationEntry {
+        credentials: SorobanCredentials::Address(SorobanAddressCredentials {
+            address: recovery_policy_address.clone().try_into().unwrap(),
+            nonce: nonce_2,
+            signature_expiration_ledger,
+            signature: (ConditionSignatures {
+                condition_index: 0,
+                signatures: map![
+                    &env,
+                    (SignerPubKey::Ed25519(simple_ed25519_bytes.clone()), Some(simple_ed25519_signature_2))
+                ]
+            }).try_into()
+              .unwrap(),
+        }),
+        root_invocation: policy_invocation.clone(),
+    };
+
+    let wallet_auth = SorobanAuthorizationEntry {
+        credentials: SorobanCredentials::Address(SorobanAddressCredentials {
+            address: wallet_address.clone().try_into().unwrap(),
+            nonce: nonce_2 + 1 ,
+            signature_expiration_ledger,
+            signature: Signatures(map![
+                &env,
+                (SignerKey::Policy(recovery_policy_address.clone()), None),
+            ])
+            .try_into()
+            .unwrap(),
+        }),
+        root_invocation: add_signer_invocation.clone(),
+    };
+
+
+
+    wallet_client.set_auths(&[wallet_auth,policy_auth]).add_signer(&new_signer);
+
 
 
     println!("{:?}", env.budget().print());

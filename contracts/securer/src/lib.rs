@@ -8,6 +8,7 @@ use types::{Error, Signatures, SignerPubKey, SimpleMultiSig};
 use smart_wallet_utils::verify::verify_secp256r1_signature;
 
 pub mod types;
+pub mod policy_context;
 mod test;
 
 #[contract]
@@ -19,11 +20,14 @@ const WEEK_OF_LEDGERS: u32 = 60 * 60 * 24 / 5 * 7;
 
 #[contractimpl]
 impl PolicyInterface for Contract {
-    fn policy__(env: Env, _source: Address, _signer: SignerKey, _contexts: Vec<Context>) {
+    fn policy__(env: Env, source: Address, signer: SignerKey, contexts: Vec<Context>) {
         if !env.storage().instance().has(&ADMIN) || !env.storage().instance().has(&POLICY_SIGNERS) {
             panic_with_error!(&env, Error::SecurerNotProperlySetUp);
         } 
-        env.current_contract_address().require_auth();
+        // We need to authenticate this policy__ call for this specific source and signer and CONTEXT!!
+        // BUT: We want to ensure the context for the policy isn't passed as it would not be possible to deterministically prepare, as the context contains this call.
+        let contexts_without_policy_ctx = policy_context::filter_policy_context(&env, &contexts, &env.current_contract_address()); 
+        env.current_contract_address().require_auth_for_args((source,signer,contexts_without_policy_ctx).into_val(&env)); 
     }
 }
 

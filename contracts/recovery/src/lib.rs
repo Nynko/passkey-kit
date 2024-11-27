@@ -2,7 +2,7 @@
 
 use smart_wallet_interface::{types::{Signature, SignerKey}, PolicyInterface};
 use soroban_sdk::{
-    auth::{Context, ContractContext, CustomAccountInterface}, contract, contractclient, contractimpl, crypto::Hash, panic_with_error, symbol_short, Address, Bytes, Env, IntoVal, Symbol, TryFromVal, Val, Vec
+    auth::{Context, ContractContext, CustomAccountInterface}, contract, contractclient, contractimpl, crypto::Hash, panic_with_error, symbol_short, vec, Address, Bytes, Env, IntoVal, Symbol, TryFromVal, Val, Vec
 };
 use types::{ConditionSignatures, Error, Recovery, SignerPubKey};
 use smart_wallet_utils::verify::verify_secp256r1_signature;
@@ -24,21 +24,21 @@ const LAST_ACTIVE_TIMESTAMP: Symbol = symbol_short!("last_tx");
 
 #[contractimpl]
 impl PolicyInterface for Contract {
-    fn policy__(env: Env, source: Address, _signer: SignerKey, contexts: Vec<Context>) {
+    fn policy__(env: Env, source: Address, signer: SignerKey, contexts: Vec<Context>) {
         let mut context_found = false;
         let wallet_address = env.storage().instance().get::<Symbol, Address>(&SMART_WALLET).unwrap();
-        for context in contexts.iter() {
+        for ref context in contexts.iter() {
             match context {
                 Context::Contract(ContractContext { contract: contract_addr, fn_name, .. }) => {
                     // We only use this policy for adding signer to the smart wallet
-                    if contract_addr == source && contract_addr == wallet_address && fn_name == Symbol::new(&env, "add_signer"){
+                    if *contract_addr == source && *contract_addr == wallet_address && *fn_name == Symbol::new(&env, "add_signer"){
                         context_found = true;
 
                         if !env.storage().instance().has(&RECOVERY) {
                             panic_with_error!(&env,Error::RecoveryDoesNotExist);
                         }
                         // Require signers signature and time check: __check_auth 
-                        env.current_contract_address().require_auth();
+                        env.current_contract_address().require_auth_for_args((source.clone(),signer.clone(), vec![&env, context.clone()]).into_val(&env));
                     }        
                 }
 
@@ -67,6 +67,9 @@ impl RecoveryInterface for Contract {
         if env.storage().instance().has(&SMART_WALLET) || env.storage().instance().has(&RECOVERY) {
             return Err(Error::RecoveryAlreadyExists);
         } 
+
+        // Check if this is a valid smart wallet ??
+
         smart_wallet_addr.require_auth();
         env.storage().instance().set(&SMART_WALLET, &smart_wallet_addr);
 
@@ -140,7 +143,6 @@ impl CustomAccountInterface for Contract {
         signatures: ConditionSignatures,
         _auth_contexts: Vec<Context>,
     ) -> Result<(), Error> {
-
         let recovery = env.storage().instance().get::<Symbol, Recovery>(&RECOVERY).unwrap();
 
         let (list_signers, condition) = recovery.get_list_signers_and_condition(&env, signatures.condition_index).unwrap(); 
@@ -148,7 +150,8 @@ impl CustomAccountInterface for Contract {
         // Check if the inactivity time is met        
         let last_tx_timestamp = env.storage().instance().get::<Symbol, u64>(&LAST_ACTIVE_TIMESTAMP).unwrap();
         let current_timestamp = env.ledger().timestamp();
-        if current_timestamp.checked_sub(last_tx_timestamp).unwrap() > condition.inactivity_time {
+        // Panic if the inactivity time is too low
+        if current_timestamp.checked_sub(last_tx_timestamp).unwrap() < condition.inactivity_time {
             panic_with_error!(env, Error::InactivityTimeNotMet)
         }
 
