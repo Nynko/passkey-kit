@@ -41,7 +41,15 @@ fn sign_payload(env: &Env, nonce: i64, simple_ed25519_keypair : &Keypair, signat
 }
 
 
-fn get_simple_ed25519(env: &Env) -> (Keypair, Address,  BytesN<32>, SignerKey) {
+
+struct SimpleEd25519 {
+    keypair: Keypair,
+    address: Address,
+    bytes: BytesN<32>,
+    signer_key: SignerKey,
+}
+
+fn get_simple_ed25519(env: &Env) -> SimpleEd25519 {
     // Simple Ed25519
     let simple_ed25519_keypair = Keypair::from_bytes(&[
         149, 154, 40, 132, 13, 234, 167, 87, 182, 44, 152, 45, 242, 179, 187, 17, 139, 106, 49, 85,
@@ -63,8 +71,14 @@ fn get_simple_ed25519(env: &Env) -> (Keypair, Address,  BytesN<32>, SignerKey) {
     simple_ed25519_bytes.copy_into_slice(&mut simple_ed25519_array);
     let simple_ed25519_bytes = BytesN::from_array(&env, &simple_ed25519_array);
     let simple_ed25519_signer_key = SignerKey::Ed25519(simple_ed25519_bytes.clone());
-    (simple_ed25519_keypair, simple_ed25519_address, simple_ed25519_bytes, simple_ed25519_signer_key)
+    SimpleEd25519 {
+        keypair: simple_ed25519_keypair,
+        address: simple_ed25519_address,
+        bytes: simple_ed25519_bytes,
+        signer_key: simple_ed25519_signer_key,
+    }
 }
+
 
 struct Environment<'a> {
     env: Env,
@@ -76,9 +90,6 @@ struct Environment<'a> {
     // sac_address: Address,
     recovery_policy_address: Address,
     // sample_policy_address: Address,
-    simple_ed25519_signer_key: SignerKey,
-    simple_ed25519_keypair: Keypair,
-    simple_ed25519_bytes: BytesN<32>,
 }
 
 
@@ -115,8 +126,6 @@ fn set_up<'a>() -> Environment<'a>{
         .mock_all_auths()
         .mint(&wallet_address, &100_000_000);
 
-    let (simple_ed25519_keypair, _simple_ed25519_address, simple_ed25519_bytes, simple_ed25519_signer_key) = get_simple_ed25519(&env);
-
 
     return Environment {
         env,
@@ -127,9 +136,6 @@ fn set_up<'a>() -> Environment<'a>{
         recovery_client,
         // sac_address,
         recovery_policy_address,
-        simple_ed25519_signer_key,
-        simple_ed25519_keypair,
-        simple_ed25519_bytes,
         // sample_policy_address
     };
 }
@@ -140,13 +146,15 @@ fn test_init_recovery() {
     let set_up = set_up();
     let env = set_up.env;
     let signature_expiration_ledger = set_up.signature_expiration_ledger;
-    let simple_ed25519_keypair = set_up.simple_ed25519_keypair;
-    let simple_ed25519_bytes = set_up.simple_ed25519_bytes;
-    let simple_ed25519_signer_key = set_up.simple_ed25519_signer_key;
     let wallet_address = set_up.wallet_address;
     let wallet_client = set_up.wallet_client;
     let recovery_client = set_up.recovery_client;
     let recovery_policy_address = set_up.recovery_policy_address;
+
+    let SimpleEd25519 {keypair: simple_ed25519_keypair, 
+                       bytes: simple_ed25519_bytes, 
+                       signer_key: simple_ed25519_signer_key, .. } 
+                       = get_simple_ed25519(&env);
 
     wallet_client.mock_all_auths().add_signer(&Signer::Ed25519(
         simple_ed25519_bytes.clone(),
@@ -225,12 +233,14 @@ fn test_recover_wallet(){
     let set_up = set_up();
     let env = set_up.env;
     let signature_expiration_ledger = set_up.signature_expiration_ledger;
-    let simple_ed25519_keypair = set_up.simple_ed25519_keypair;
-    let simple_ed25519_bytes = set_up.simple_ed25519_bytes;
     let wallet_address = set_up.wallet_address;
     let recovery_client = set_up.recovery_client;
     let recovery_policy_address = set_up.recovery_policy_address;
     let wallet_client = set_up.wallet_client;
+
+    let SimpleEd25519 {keypair: simple_ed25519_keypair, 
+                       bytes: simple_ed25519_bytes, .. } 
+                       = get_simple_ed25519(&env);
 
     let recovery = Recovery {
         signers: vec![&env, SignerPubKey::Ed25519(simple_ed25519_bytes.clone())],
