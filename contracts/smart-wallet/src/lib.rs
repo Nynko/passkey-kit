@@ -113,46 +113,36 @@ impl CustomAccountInterface for Contract {
         signatures: Signatures,
         auth_contexts: Vec<Context>,
     ) -> Result<(), Error> {
-        // Check all contexts for an authorizing signature
-        for context in auth_contexts.iter() {
-            'check: loop {
-                for (signer_key, _) in signatures.0.iter() {
-                    if let Some((signer_val, _)) = get_signer_val_storage(&env, &signer_key, false)
-                    {
-                        let (signer_expiration, signer_limits) = match signer_val {
-                            SignerVal::Policy(signer_expiration, signer_limits) => {
-                                (signer_expiration, signer_limits)
-                            }
-                            SignerVal::Ed25519(signer_expiration, signer_limits) => {
-                                (signer_expiration, signer_limits)
-                            }
-                            SignerVal::Secp256r1(_, signer_expiration, signer_limits) => {
-                                (signer_expiration, signer_limits)
-                            }
-                        };
-
-                        verify_signer_expiration(&env, signer_expiration);
-
-                        if verify_context(&env, &context, &signer_key, &signer_limits, &signatures)
-                        {
-                            break 'check;
-                        } else {
-                            continue;
-                        }
-                    }
-                }
-
-                panic_with_error!(env, Error::MissingContext);
-            }
+        // Structure to check all contexts for an authorizing signature
+        let ctxs_len = auth_contexts.len();
+        let mut ctxs_with_matching_signature : Vec<bool> = Vec::new(&env);
+        for _ in 0..ctxs_len {
+            ctxs_with_matching_signature.push_back(false);
         }
 
-        // Check all signatures for a matching context
         for (signer_key, signature) in signatures.0.iter() {
-            // This is probably the only right place to verify_signer_expiration for crypto keys
-
             match get_signer_val_storage(&env, &signer_key, true) {
                 None => panic_with_error!(env, Error::NotFound),
-                Some((signer_val, _)) => {
+                Some((ref signer_val, _)) => {
+
+                    let (signer_expiration, signer_limits) = match signer_val {
+                        SignerVal::Policy(signer_expiration, signer_limits)
+                        | SignerVal::Ed25519(signer_expiration, signer_limits)
+                        | SignerVal::Secp256r1(_, signer_expiration, signer_limits) => {
+                            (signer_expiration, signer_limits)
+                        }
+                    };
+                    // This is probably the only right place to verify_signer_expiration for crypto keys
+                    verify_signer_expiration(&env, *signer_expiration);
+
+                    // Check all contexts for at least one authorizing signature
+                    for (index, context) in auth_contexts.iter().enumerate() {
+                        if !ctxs_with_matching_signature.get(index as u32).unwrap()
+                           && verify_context(&env, &context, &signer_key, &signer_limits, &signatures) {
+                            ctxs_with_matching_signature.set(index as u32,true);
+                        }
+                    }
+
                     match signature {
                         None => {
                             // If there's a policy signer in the signatures map we call it as a full forward of this __check_auth's Vec<Context>
@@ -197,6 +187,10 @@ impl CustomAccountInterface for Contract {
                     }
                 }
             };
+        }
+
+        if !ctxs_with_matching_signature.iter().all(|ctx_matched| ctx_matched) {
+            panic_with_error!(&env, Error::MissingContext);
         }
 
         extend_instance(&env);
