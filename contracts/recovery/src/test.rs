@@ -302,7 +302,7 @@ fn test_recover_wallet(){
             .try_into()
             .unwrap(),
         }),
-        sub_invocations: std::vec![policy_invocation.clone()].try_into().unwrap(), 
+        sub_invocations: std::vec![].try_into().unwrap(), 
     };
 
     let nonce = 6;
